@@ -94,4 +94,8 @@ class CPU:
                 print(self.reg[reg_num])
                 self.pc += 2
 
+            else:
+                print("Instruction not recognized")
+                sys.exit()
+
         
