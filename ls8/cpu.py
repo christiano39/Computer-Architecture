@@ -79,21 +79,25 @@ class CPU:
         while not halted:
             instruction = self.ram_read(self.pc)
             
+            #HLT - HALT
             if instruction == HLT:
                 halted = True
                 self.pc += 1
 
+            #LDI - LOAD VALUE INTO REGISTER
             elif instruction == LDI:
                 reg_num = self.ram_read(self.pc + 1)
                 value = self.ram_read(self.pc + 2)
                 self.reg[reg_num] = value
                 self.pc += 3
 
+            #PRN - PRINT REGISTER VALUE
             elif instruction == PRN:
                 reg_num = self.ram_read(self.pc + 1)
                 print(self.reg[reg_num])
                 self.pc += 2
 
+            #MUL - MULTIPLY TWO REGISTERS
             elif instruction == MUL:
                 reg_a = self.ram_read(self.pc + 1)
                 reg_b = self.ram_read(self.pc + 2)
@@ -102,6 +106,7 @@ class CPU:
                 self.reg[reg_a] = operand_a * operand_b
                 self.pc += 3
 
+            #CATCH UNRECOGNIZED INSTRUCTIONS
             else:
                 print("Instruction not recognized")
                 sys.exit()
