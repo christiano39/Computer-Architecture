@@ -21,7 +21,7 @@ class CPU:
             while line:
                 line = line.strip()
                 if line and line[0] != "#":
-                    instruction = line[:8].strip()
+                    instruction = line.split("#")[0]
                     instruction = int(instruction, 2)
                     program.append(instruction)
                 line = f.readline()
