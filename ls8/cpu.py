@@ -10,6 +10,13 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+        self.operations = {}
+        self.running = False
+
+        self.operations[0b00000001] = self.handleHLT
+        self.operations[0b10000010] = self.handleLDI
+        self.operations[0b01000111] = self.handlePRN
+        self.operations[0b10100010] = self.handleMUL
 
     def load(self, filename):
         """Load a program into memory."""
@@ -68,44 +75,41 @@ class CPU:
     def ram_write(self, mar, mdr):
         self.ram[mar] = mdr
 
+    #HLT - HALT
+    def handleHLT(self):
+        self.running = False
+
+    #LDI - LOAD VALUE INTO REGISTER
+    def handleLDI(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.pc + 2)
+        self.reg[reg_num] = value
+
+    #PRN - PRINT REGISTER VALUE
+    def handlePRN(self):
+        reg_num = self.ram_read(self.pc + 1)
+        print(self.reg[reg_num])
+
+    #MUL - MULTIPLY TWO REGISTERS
+    def handleMUL(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("MUL", reg_a, reg_b)
+
     def run(self):
         """Run the CPU."""
-        HLT = 0b00000001
-        LDI = 0b10000010
-        PRN = 0b01000111
-        MUL = 0b10100010
+        self.running = True
 
-        halted = False
-
-        while not halted:
+        while self.running:
             instruction = self.ram_read(self.pc)
             arg_nums = ((instruction & 0b11000000) >> 6)
-            
-            #HLT - HALT
-            if instruction == HLT:
-                halted = True
 
-            #LDI - LOAD VALUE INTO REGISTER
-            elif instruction == LDI:
-                reg_num = self.ram_read(self.pc + 1)
-                value = self.ram_read(self.pc + 2)
-                self.reg[reg_num] = value
+            if instruction in self.operations:
+                self.operations[instruction]()
 
-            #PRN - PRINT REGISTER VALUE
-            elif instruction == PRN:
-                reg_num = self.ram_read(self.pc + 1)
-                print(self.reg[reg_num])
-
-            #MUL - MULTIPLY TWO REGISTERS
-            elif instruction == MUL:
-                reg_a = self.ram_read(self.pc + 1)
-                reg_b = self.ram_read(self.pc + 2)
-                self.alu("MUL", reg_a, reg_b)
-
-            #CATCH UNRECOGNIZED INSTRUCTIONS
             else:
-                print("Instruction not recognized")
-                sys.exit()
+                print(f"Instruction {instruction} not recognized")
+                sys.exit(1)
 
             self.pc += arg_nums + 1
 
