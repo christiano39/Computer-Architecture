@@ -72,6 +72,7 @@ class CPU:
         HLT = 0b00000001
         LDI = 0b10000010
         PRN = 0b01000111
+        MUL = 0b10100010
 
         halted = False
 
@@ -92,6 +93,14 @@ class CPU:
                 reg_num = self.ram_read(self.pc + 1)
                 print(self.reg[reg_num])
                 self.pc += 2
+
+            elif instruction == MUL:
+                reg_a = self.ram_read(self.pc + 1)
+                reg_b = self.ram_read(self.pc + 2)
+                operand_a = self.reg[reg_a]
+                operand_b = self.reg[reg_b]
+                self.reg[reg_a] = operand_a * operand_b
+                self.pc += 3
 
             else:
                 print("Instruction not recognized")
