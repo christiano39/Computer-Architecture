@@ -12,11 +12,17 @@ class CPU:
         self.pc = 0
         self.operations = {}
         self.running = False
+        self.sp = 255
 
         self.operations[0b00000001] = self.handleHLT
         self.operations[0b10000010] = self.handleLDI
         self.operations[0b01000111] = self.handlePRN
         self.operations[0b10100010] = self.handleMUL
+        self.operations[0b10100000] = self.handleADD
+        self.operations[0b01000101] = self.handlePUSH
+        self.operations[0b01000110] = self.handlePOP
+        self.operations[0b01010000] = self.handleCALL
+        self.operations[0b00010001] = self.handleRET
 
     def load(self, filename):
         """Load a program into memory."""
@@ -95,6 +101,39 @@ class CPU:
         reg_a = self.ram_read(self.pc + 1)
         reg_b = self.ram_read(self.pc + 2)
         self.alu("MUL", reg_a, reg_b)
+
+    #ADD - ADD TWO REGISTERS
+    def handleADD(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("ADD", reg_a, reg_b)
+
+    #PUSH - PUSH A VALUE INTO THE STACK 
+    def handlePUSH(self):
+        reg_num = self.ram_read(self.pc + 1)
+        self.sp -= 1
+        self.ram_write(self.sp, self.reg[reg_num])
+
+    #POP - POP A VALUE OFF THE STACK AND INTO A REGISTER
+    def handlePOP(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.sp)
+        self.sp += 1
+        self.reg[reg_num] = value
+
+    #CALL - CALL A SUBROUTINE
+    def handleCALL(self):
+        reg_num = self.ram_read(self.pc + 1)
+        next_address = self.pc + 2
+        self.sp -= 1
+        self.ram_write(self.sp, next_address)
+        self.pc = self.reg[reg_num] - 2
+
+    #RET - RETURN FROM A SUBROUTINE
+    def handleRET(self):
+        resume_address = self.ram_read(self.sp)
+        self.sp += 1
+        self.pc = resume_address - 1
 
     def run(self):
         """Run the CPU."""
