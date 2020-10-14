@@ -7,36 +7,61 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 256
+        self.reg = [0] * 8
+        self.reg[7] = 0xF4
+        self.pc = 0
+        self.operations = {}
+        self.running = False
 
-    def load(self):
+        self.operations[0b00000001] = self.handleHLT
+        self.operations[0b10000010] = self.handleLDI
+        self.operations[0b01000111] = self.handlePRN
+        self.operations[0b10100010] = self.handleMUL
+        self.operations[0b10100011] = self.handleDIV
+        self.operations[0b10100000] = self.handleADD
+        self.operations[0b10100001] = self.handleSUB
+        self.operations[0b01000101] = self.handlePUSH
+        self.operations[0b01000110] = self.handlePOP
+        self.operations[0b01010000] = self.handleCALL
+        self.operations[0b00010001] = self.handleRET
+
+    def load(self, filename):
         """Load a program into memory."""
+        program = []
+
+        with open(f"./examples/{filename}", "r") as f:
+            line = f.readline()
+
+            while line:
+                line = line.strip()
+                if line and line[0] != "#":
+                    instruction = line.split("#")[0]
+                    instruction = int(instruction, 2)
+                    program.append(instruction)
+                line = f.readline()
 
         address = 0
 
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
         for instruction in program:
-            self.ram[address] = instruction
+            self.ram_write(address, instruction)
             address += 1
-
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "SUB":
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "DIV":
+            if self.reg[reg_b] == 0:
+                print("Cannot divide by zero. Exiting...")
+                self.running = False
+            else:
+                self.reg[reg_a] = self.reg[reg_a] // self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -60,6 +85,93 @@ class CPU:
 
         print()
 
+    def ram_read(self, mar):
+        return self.ram[mar]
+
+    def ram_write(self, mar, mdr):
+        self.ram[mar] = mdr
+
+    #HLT - HALT
+    def handleHLT(self):
+        self.running = False
+
+    #LDI - LOAD VALUE INTO REGISTER
+    def handleLDI(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.pc + 2)
+        self.reg[reg_num] = value
+
+    #PRN - PRINT REGISTER VALUE
+    def handlePRN(self):
+        reg_num = self.ram_read(self.pc + 1)
+        print(self.reg[reg_num])
+
+    #MUL - MULTIPLY TWO REGISTERS
+    def handleMUL(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("MUL", reg_a, reg_b)
+
+    #DIV - DIVIDE REG_A BY REG_B
+    def handleDIV(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("DIV", reg_a, reg_b)
+
+    #ADD - ADD TWO REGISTERS
+    def handleADD(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("ADD", reg_a, reg_b)
+
+    #SUB - SUBTRACT REG_A FROM REG_B
+    def handleSUB(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("SUB", reg_a, reg_b)
+
+    #PUSH - PUSH A VALUE INTO THE STACK 
+    def handlePUSH(self):
+        reg_num = self.ram_read(self.pc + 1)
+        self.reg[7] -= 1
+        self.ram_write(self.reg[7], self.reg[reg_num])
+
+    #POP - POP A VALUE OFF THE STACK AND INTO A REGISTER
+    def handlePOP(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.reg[7])
+        self.reg[7] += 1
+        self.reg[reg_num] = value
+
+    #CALL - CALL A SUBROUTINE
+    def handleCALL(self):
+        reg_num = self.ram_read(self.pc + 1)
+        next_address = self.pc + 2
+        self.reg[7] -= 1
+        self.ram_write(self.reg[7], next_address)
+        self.pc = self.reg[reg_num] - 2
+
+    #RET - RETURN FROM A SUBROUTINE
+    def handleRET(self):
+        resume_address = self.ram_read(self.reg[7])
+        self.reg[7] += 1
+        self.pc = resume_address - 1
+
     def run(self):
         """Run the CPU."""
-        pass
+        self.running = True
+
+        while self.running:
+            instruction = self.ram_read(self.pc)
+            arg_nums = ((instruction & 0b11000000) >> 6)
+
+            if instruction in self.operations:
+                self.operations[instruction]()
+
+            else:
+                print(f"Instruction {instruction} not recognized")
+                sys.exit(1)
+
+            self.pc += arg_nums + 1
+
+        
