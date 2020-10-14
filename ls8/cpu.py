@@ -12,6 +12,7 @@ class CPU:
         self.reg[7] = 0xF4
         self.pc = 0
         self.operations = {}
+        self.fl = 0b00000000
         self.running = False
 
         self.operations[0b00000001] = self.handleHLT
@@ -25,6 +26,7 @@ class CPU:
         self.operations[0b01000110] = self.handlePOP
         self.operations[0b01010000] = self.handleCALL
         self.operations[0b00010001] = self.handleRET
+        self.operations[0b10100111] = self.handleCMP
 
     def load(self, filename):
         """Load a program into memory."""
@@ -156,6 +158,20 @@ class CPU:
         resume_address = self.ram_read(self.reg[7])
         self.reg[7] += 1
         self.pc = resume_address - 1
+
+    #CMP - COMPARE VALUES OF TWO REGISTERS
+    def handleCMP(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        operand_a = self.reg[reg_a]
+        operand_b = self.reg[reg_b]
+
+        if operand_a == operand_b:
+            self.fl = 0b00000001
+        elif operand_a > operand_b:
+            self.fl = 0b00000010
+        else:
+            self.fl = 0b00000100
 
     def run(self):
         """Run the CPU."""
