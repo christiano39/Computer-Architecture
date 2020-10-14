@@ -18,7 +18,9 @@ class CPU:
         self.operations[0b10000010] = self.handleLDI
         self.operations[0b01000111] = self.handlePRN
         self.operations[0b10100010] = self.handleMUL
+        self.operations[0b10100011] = self.handleDIV
         self.operations[0b10100000] = self.handleADD
+        self.operations[0b10100001] = self.handleSUB
         self.operations[0b01000101] = self.handlePUSH
         self.operations[0b01000110] = self.handlePOP
         self.operations[0b01010000] = self.handleCALL
@@ -52,6 +54,14 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "SUB":
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "DIV":
+            if self.reg[reg_b] == 0:
+                print("Cannot divide by zero. Exiting...")
+                self.running = False
+            else:
+                self.reg[reg_a] = self.reg[reg_a] // self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -102,11 +112,23 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("MUL", reg_a, reg_b)
 
+    #DIV - DIVIDE REG_A BY REG_B
+    def handleDIV(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("DIV", reg_a, reg_b)
+
     #ADD - ADD TWO REGISTERS
     def handleADD(self):
         reg_a = self.ram_read(self.pc + 1)
         reg_b = self.ram_read(self.pc + 2)
         self.alu("ADD", reg_a, reg_b)
+
+    #SUB - SUBTRACT REG_A FROM REG_B
+    def handleSUB(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("SUB", reg_a, reg_b)
 
     #PUSH - PUSH A VALUE INTO THE STACK 
     def handlePUSH(self):
