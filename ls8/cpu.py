@@ -27,6 +27,7 @@ class CPU:
         self.operations[0b01010000] = self.handleCALL
         self.operations[0b00010001] = self.handleRET
         self.operations[0b10100111] = self.handleCMP
+        self.operations[0b01010100] = self.handleJMP
 
     def load(self, filename):
         """Load a program into memory."""
@@ -172,6 +173,12 @@ class CPU:
             self.fl = 0b00000010
         else:
             self.fl = 0b00000100
+
+    #JMP - JUMP TO AN ADDRESS
+    def handleJMP(self):
+        reg_num = self.ram_read(self.pc + 1)
+        addr_to_jump_to = self.reg[reg_num]
+        self.pc = addr_to_jump_to - 2
 
     def run(self):
         """Run the CPU."""
