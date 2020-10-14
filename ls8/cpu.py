@@ -28,6 +28,8 @@ class CPU:
         self.operations[0b00010001] = self.handleRET
         self.operations[0b10100111] = self.handleCMP
         self.operations[0b01010100] = self.handleJMP
+        self.operations[0b01010101] = self.handleJEQ
+        self.operations[0b01010110] = self.handleJNE
 
     def load(self, filename):
         """Load a program into memory."""
@@ -179,6 +181,20 @@ class CPU:
         reg_num = self.ram_read(self.pc + 1)
         addr_to_jump_to = self.reg[reg_num]
         self.pc = addr_to_jump_to - 2
+
+    #JEQ - JUMP TO AN ADDRESS IF E FLAG IS TRUE
+    def handleJEQ(self):
+        if self.fl == 1:
+            reg_num = self.ram_read(self.pc + 1)
+            addr_to_jump_to = self.reg[reg_num]
+            self.pc = addr_to_jump_to - 2
+
+    #JNE - JUMP TO AN ADDRESS IF E FLAG IS FALSE
+    def handleJNE(self):
+        if self.fl != 1:
+            reg_num = self.ram_read(self.pc + 1)
+            addr_to_jump_to = self.reg[reg_num]
+            self.pc = addr_to_jump_to - 2
 
     def run(self):
         """Run the CPU."""
