@@ -9,10 +9,10 @@ class CPU:
         """Construct a new CPU."""
         self.ram = [0] * 256
         self.reg = [0] * 8
+        self.reg[7] = 0xF4
         self.pc = 0
         self.operations = {}
         self.running = False
-        self.sp = 255
 
         self.operations[0b00000001] = self.handleHLT
         self.operations[0b10000010] = self.handleLDI
@@ -133,28 +133,28 @@ class CPU:
     #PUSH - PUSH A VALUE INTO THE STACK 
     def handlePUSH(self):
         reg_num = self.ram_read(self.pc + 1)
-        self.sp -= 1
-        self.ram_write(self.sp, self.reg[reg_num])
+        self.reg[7] -= 1
+        self.ram_write(self.reg[7], self.reg[reg_num])
 
     #POP - POP A VALUE OFF THE STACK AND INTO A REGISTER
     def handlePOP(self):
         reg_num = self.ram_read(self.pc + 1)
-        value = self.ram_read(self.sp)
-        self.sp += 1
+        value = self.ram_read(self.reg[7])
+        self.reg[7] += 1
         self.reg[reg_num] = value
 
     #CALL - CALL A SUBROUTINE
     def handleCALL(self):
         reg_num = self.ram_read(self.pc + 1)
         next_address = self.pc + 2
-        self.sp -= 1
-        self.ram_write(self.sp, next_address)
+        self.reg[7] -= 1
+        self.ram_write(self.reg[7], next_address)
         self.pc = self.reg[reg_num] - 2
 
     #RET - RETURN FROM A SUBROUTINE
     def handleRET(self):
-        resume_address = self.ram_read(self.sp)
-        self.sp += 1
+        resume_address = self.ram_read(self.reg[7])
+        self.reg[7] += 1
         self.pc = resume_address - 1
 
     def run(self):
