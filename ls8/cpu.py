@@ -30,6 +30,7 @@ class CPU:
         self.operations[0b01010100] = self.handleJMP
         self.operations[0b01010101] = self.handleJEQ
         self.operations[0b01010110] = self.handleJNE
+        self.operations[0b10101000] = self.handleAND
 
     def load(self, filename):
         """Load a program into memory."""
@@ -66,7 +67,9 @@ class CPU:
                 print("Cannot divide by zero. Exiting...")
                 self.running = False
             else:
-                self.reg[reg_a] = self.reg[reg_a] // self.reg[reg_b]
+                self.reg[reg_a] //= self.reg[reg_b]
+        elif op == "AND":
+            self.reg[reg_a] &= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -96,32 +99,24 @@ class CPU:
     def ram_write(self, mar, mdr):
         self.ram[mar] = mdr
 
-    #HLT - HALT
-    def handleHLT(self):
-        self.running = False
+    def run(self):
+        """Run the CPU."""
+        self.running = True
 
-    #LDI - LOAD VALUE INTO REGISTER
-    def handleLDI(self):
-        reg_num = self.ram_read(self.pc + 1)
-        value = self.ram_read(self.pc + 2)
-        self.reg[reg_num] = value
+        while self.running:
+            instruction = self.ram_read(self.pc)
+            arg_nums = (instruction & 0b11000000) >> 6
+            pc_already_moved = (instruction & 0b00010000) >> 4
 
-    #PRN - PRINT REGISTER VALUE
-    def handlePRN(self):
-        reg_num = self.ram_read(self.pc + 1)
-        print(self.reg[reg_num])
+            if instruction in self.operations:
+                self.operations[instruction]()
 
-    #MUL - MULTIPLY TWO REGISTERS
-    def handleMUL(self):
-        reg_a = self.ram_read(self.pc + 1)
-        reg_b = self.ram_read(self.pc + 2)
-        self.alu("MUL", reg_a, reg_b)
+            else:
+                print(f"Instruction {instruction} not recognized")
+                sys.exit(1)
 
-    #DIV - DIVIDE REG_A BY REG_B
-    def handleDIV(self):
-        reg_a = self.ram_read(self.pc + 1)
-        reg_b = self.ram_read(self.pc + 2)
-        self.alu("DIV", reg_a, reg_b)
+            if not pc_already_moved:
+                self.pc += arg_nums + 1
 
     #ADD - ADD TWO REGISTERS
     def handleADD(self):
@@ -129,24 +124,11 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("ADD", reg_a, reg_b)
 
-    #SUB - SUBTRACT REG_A FROM REG_B
-    def handleSUB(self):
+    #AND - BITWISE AND TWO REGISTERS
+    def handleAND(self):
         reg_a = self.ram_read(self.pc + 1)
         reg_b = self.ram_read(self.pc + 2)
-        self.alu("SUB", reg_a, reg_b)
-
-    #PUSH - PUSH A VALUE INTO THE STACK 
-    def handlePUSH(self):
-        reg_num = self.ram_read(self.pc + 1)
-        self.reg[7] -= 1
-        self.ram_write(self.reg[7], self.reg[reg_num])
-
-    #POP - POP A VALUE OFF THE STACK AND INTO A REGISTER
-    def handlePOP(self):
-        reg_num = self.ram_read(self.pc + 1)
-        value = self.ram_read(self.reg[7])
-        self.reg[7] += 1
-        self.reg[reg_num] = value
+        self.alu("AND", reg_a, reg_b)
 
     #CALL - CALL A SUBROUTINE
     def handleCALL(self):
@@ -154,13 +136,7 @@ class CPU:
         next_address = self.pc + 2
         self.reg[7] -= 1
         self.ram_write(self.reg[7], next_address)
-        self.pc = self.reg[reg_num] - 2
-
-    #RET - RETURN FROM A SUBROUTINE
-    def handleRET(self):
-        resume_address = self.ram_read(self.reg[7])
-        self.reg[7] += 1
-        self.pc = resume_address - 1
+        self.pc = self.reg[reg_num]
 
     #CMP - COMPARE VALUES OF TWO REGISTERS
     def handleCMP(self):
@@ -176,41 +152,80 @@ class CPU:
         else:
             self.fl = 0b00000100
 
-    #JMP - JUMP TO AN ADDRESS
-    def handleJMP(self):
-        reg_num = self.ram_read(self.pc + 1)
-        addr_to_jump_to = self.reg[reg_num]
-        self.pc = addr_to_jump_to - 2
+    #DIV - DIVIDE REG_A BY REG_B
+    def handleDIV(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("DIV", reg_a, reg_b)
+
+    #HLT - HALT
+    def handleHLT(self):
+        self.running = False
 
     #JEQ - JUMP TO AN ADDRESS IF E FLAG IS TRUE
     def handleJEQ(self):
         if self.fl == 1:
             reg_num = self.ram_read(self.pc + 1)
             addr_to_jump_to = self.reg[reg_num]
-            self.pc = addr_to_jump_to - 2
+            self.pc = addr_to_jump_to
+        else:
+            self.pc += 2
+
+    #JMP - JUMP TO AN ADDRESS
+    def handleJMP(self):
+        reg_num = self.ram_read(self.pc + 1)
+        addr_to_jump_to = self.reg[reg_num]
+        self.pc = addr_to_jump_to
 
     #JNE - JUMP TO AN ADDRESS IF E FLAG IS FALSE
     def handleJNE(self):
         if self.fl != 1:
             reg_num = self.ram_read(self.pc + 1)
             addr_to_jump_to = self.reg[reg_num]
-            self.pc = addr_to_jump_to - 2
+            self.pc = addr_to_jump_to
+        else:
+            self.pc += 2
 
-    def run(self):
-        """Run the CPU."""
-        self.running = True
+    #LDI - LOAD VALUE INTO REGISTER
+    def handleLDI(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.pc + 2)
+        self.reg[reg_num] = value
 
-        while self.running:
-            instruction = self.ram_read(self.pc)
-            arg_nums = ((instruction & 0b11000000) >> 6)
+    #MUL - MULTIPLY TWO REGISTERS
+    def handleMUL(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("MUL", reg_a, reg_b)
 
-            if instruction in self.operations:
-                self.operations[instruction]()
+    #POP - POP A VALUE OFF THE STACK AND INTO A REGISTER
+    def handlePOP(self):
+        reg_num = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.reg[7])
+        self.reg[7] += 1
+        self.reg[reg_num] = value
 
-            else:
-                print(f"Instruction {instruction} not recognized")
-                sys.exit(1)
+    #PRN - PRINT REGISTER VALUE
+    def handlePRN(self):
+        reg_num = self.ram_read(self.pc + 1)
+        print(self.reg[reg_num])
 
-            self.pc += arg_nums + 1
+    #PUSH - PUSH A VALUE INTO THE STACK 
+    def handlePUSH(self):
+        reg_num = self.ram_read(self.pc + 1)
+        self.reg[7] -= 1
+        self.ram_write(self.reg[7], self.reg[reg_num])
+
+    #RET - RETURN FROM A SUBROUTINE
+    def handleRET(self):
+        resume_address = self.ram_read(self.reg[7])
+        self.reg[7] += 1
+        self.pc = resume_address
+
+    #SUB - SUBTRACT REG_A FROM REG_B
+    def handleSUB(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("SUB", reg_a, reg_b)
 
         
