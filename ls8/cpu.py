@@ -33,6 +33,9 @@ class CPU:
         self.operations[0b10101000] = self.handleAND
         self.operations[0b10101010] = self.handleOR
         self.operations[0b10101011] = self.handleXOR
+        self.operations[0b01101001] = self.handleNOT
+        self.operations[0b10101100] = self.handleSHL
+        self.operations[0b10101101] = self.handleSHR
 
     def load(self, filename):
         """Load a program into memory."""
@@ -76,6 +79,12 @@ class CPU:
             self.reg[reg_a] |= self.reg[reg_b]
         elif op == "XOR":
             self.reg[reg_a] ^= self.reg[reg_b]
+        elif op == "NOT":
+            self.reg[reg_a] = ~self.reg[reg_a]
+        elif op == "SHL":
+            self.reg[reg_a] <<= self.reg[reg_b]
+        elif op == "SHR":
+            self.reg[reg_a] >>= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -204,6 +213,11 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("MUL", reg_a, reg_b)
 
+    #NOT - BITWISE NOT A REGISTER
+    def handleNOT(self):
+        reg_a = self.ram_read(self.pc + 1)
+        self.alu("NOT", reg_a, None)
+
     #OR - BITWISE OR TWO REGISTERS
     def handleOR(self):
         reg_a = self.ram_read(self.pc + 1)
@@ -233,6 +247,18 @@ class CPU:
         resume_address = self.ram_read(self.reg[7])
         self.reg[7] += 1
         self.pc = resume_address
+
+    #SHL - LEFT SHIFT REG_A BY REB_B
+    def handleSHL(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("SHL", reg_a, reg_b)
+
+    #SHR - RIGHT SHIFT REG_A BY REB_B
+    def handleSHR(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("SHR", reg_a, reg_b)
 
     #SUB - SUBTRACT REG_A FROM REG_B
     def handleSUB(self):
