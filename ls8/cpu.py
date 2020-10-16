@@ -36,6 +36,7 @@ class CPU:
         self.operations[0b01101001] = self.handleNOT
         self.operations[0b10101100] = self.handleSHL
         self.operations[0b10101101] = self.handleSHR
+        self.operations[0b10100100] = self.handleMOD
 
     def load(self, filename):
         """Load a program into memory."""
@@ -85,6 +86,8 @@ class CPU:
             self.reg[reg_a] <<= self.reg[reg_b]
         elif op == "SHR":
             self.reg[reg_a] >>= self.reg[reg_b]
+        elif op == "MOD":
+            self.reg[reg_a] %= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -206,6 +209,12 @@ class CPU:
         reg_num = self.ram_read(self.pc + 1)
         value = self.ram_read(self.pc + 2)
         self.reg[reg_num] = value
+
+    #MOD - MOD TWO REGISTERS
+    def handleMOD(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("MOD", reg_a, reg_b)
 
     #MUL - MULTIPLY TWO REGISTERS
     def handleMUL(self):
