@@ -31,6 +31,8 @@ class CPU:
         self.operations[0b01010101] = self.handleJEQ
         self.operations[0b01010110] = self.handleJNE
         self.operations[0b10101000] = self.handleAND
+        self.operations[0b10101010] = self.handleOR
+        self.operations[0b10101011] = self.handleXOR
 
     def load(self, filename):
         """Load a program into memory."""
@@ -70,6 +72,10 @@ class CPU:
                 self.reg[reg_a] //= self.reg[reg_b]
         elif op == "AND":
             self.reg[reg_a] &= self.reg[reg_b]
+        elif op == "OR":
+            self.reg[reg_a] |= self.reg[reg_b]
+        elif op == "XOR":
+            self.reg[reg_a] ^= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -198,6 +204,12 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("MUL", reg_a, reg_b)
 
+    #OR - BITWISE OR TWO REGISTERS
+    def handleOR(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("OR", reg_a, reg_b)
+
     #POP - POP A VALUE OFF THE STACK AND INTO A REGISTER
     def handlePOP(self):
         reg_num = self.ram_read(self.pc + 1)
@@ -228,4 +240,9 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("SUB", reg_a, reg_b)
 
+    #XOR - BITWISE XOR TWO REGISTERS
+    def handleXOR(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("XOR", reg_a, reg_b)
         
